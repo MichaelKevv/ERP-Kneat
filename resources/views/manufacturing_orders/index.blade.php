@@ -27,7 +27,7 @@
                     <table class="table table-striped" id="table1">
                         <thead>
                             <tr>
-                                <th>Kode MO</th>
+                                <th>Reference</th>
                                 <th>Produk</th>
                                 <th>Kuantitas yang Dihasilkan</th>
                                 <th>Tanggal Produksi</th>
@@ -42,14 +42,24 @@
                                     <td>{{ $order->kode_mo }}</td>
                                     <td>{{ $order->tb_produk->nama_produk }}</td>
                                     <td>{{ $order->kuantitas_produk }}</td>
-                                    <td>{{ $order->tanggal_produksi }}</td>
-                                    <td>{{ $order->tanggal_deadline }}</td>
-                                    <td>{{ ucfirst($order->status) }}</td>
+                                    <td>{{ \Carbon\Carbon::parse($order->tanggal_produksi)->format('d/m/Y') }}</td>
+                                    <td>{{ \Carbon\Carbon::parse($order->tanggal_deadline)->format('d/m/Y') }}</td>
+                                    <td>
+                                        @if (strtolower($order->status) == 'draft')
+                                            <span class="badge bg-secondary">Draft</span>
+                                        @elseif (strtolower($order->status) == 'confirmed')
+                                            <span class="badge bg-primary">Confirmed</span>
+                                        @elseif (strtolower($order->status) == 'in_progress')
+                                            <span class="badge bg-info">In Progress</span>
+                                        @elseif (strtolower($order->status) == 'done')
+                                            <span class="badge bg-success">Done</span>
+                                        @endif
+                                    </td>
                                     <td>
                                         <a href="{{ route('manufacturing_orders.show', $order->id) }}"
                                             class="text-secondary font-weight-bold text-xs" data-toggle="tooltip"
                                             data-original-title="Detail MO">
-                                            <button class="btn btn-primary" type="button">
+                                            <button class="btn btn-success" type="button">
                                                 <i class="bi bi-file-earmark-text"></i>
                                             </button>
                                         </a>

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kneat</title>
+    <title>Kneat | @yield('title')</title>
 
     <link rel="Shortcut icon" href = "{{ asset('images/logo.jpg') }}"alt="">
     <link rel="stylesheet" crossorigin href="{{ asset('compiled/css/app.css') }}">
@@ -69,12 +69,6 @@
                                 <span>Dashboard</span>
                             </a>
                         </li>
-                        <li class="sidebar-item">
-                            <a href="{{ url('inventory') }}" class='sidebar-link'>
-                                <i class="bi bi-box2-fill"></i>
-                                <span>Inventory</span>
-                            </a>
-                        </li>
                         <li class="sidebar-item has-sub">
                             <a href="#" class='sidebar-link'>
                                 <i class="bi bi-building-fill"></i>
@@ -104,6 +98,9 @@
                             <ul class="submenu">
                                 <li class="submenu-item  ">
                                     <a href="{{ url('vendors') }}" class="submenu-link">Vendor</a>
+                                </li>
+                                <li class="submenu-item  ">
+                                    <a href="{{ url('rfq') }}" class="submenu-link">RFQ</a>
                                 </li>
                             </ul>
                         </li>

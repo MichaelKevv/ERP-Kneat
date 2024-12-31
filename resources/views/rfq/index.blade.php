@@ -4,13 +4,13 @@
         <div class="page-title">
             <div class="row">
                 <div class="col-12 col-md-6 order-md-1 order-last">
-                    <h3>Data Produk</h3>
+                    <h3>Data RFQ</h3>
                 </div>
                 <div class="col-12 col-md-6 order-md-2 order-first">
                     <nav aria-label="breadcrumb" class="breadcrumb-header float-start float-lg-end">
                         <ol class="breadcrumb">
                             <li class="breadcrumb-item"><a href="{{ url('dashboard') }}">Dashboard</a></li>
-                            <li class="breadcrumb-item active" aria-current="page">Data Produk</li>
+                            <li class="breadcrumb-item active" aria-current="page">Data RFQ</li>
                         </ol>
                     </nav>
                 </div>
@@ -19,56 +19,52 @@
         <section class="section">
             <div class="card">
                 <div class="card-header">
-                    <a href="{{ url('produk/create') }}"><button class="btn btn-success">Tambah Data</button></a>
-                    {{-- <a href="" target="_blank"><button class="btn btn-success float-end">Export
-                            PDF</button></a> --}}
+                    <a href="{{ route('rfq.create') }}"><button class="btn btn-success">Tambah Data</button></a>
                 </div>
                 <div class="card-body">
                     <table class="table table-striped" id="table1">
                         <thead>
                             <tr>
-                                <th>Barcode</th>
-                                <th>Internal Reference</th>
-                                <th>Nama Produk</th>
-                                <th>Harga Jual</th>
-                                <th>Biaya Produk</th>
-                                <th>On Hand</th>
-                                <th>Foto</th>
+                                <th>Reference</th>
+                                <th>Vendor</th>
+                                <th>Tanggal Order</th>
+                                <th>Status</th>
                                 <th>Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach ($data as $produk)
+                            @foreach ($data as $rfq)
                                 <tr>
-                                    <td>{{ $produk->barcode }}</td>
-                                    <td>{{ $produk->internal_reference }}</td>
-                                    <td>{{ $produk->nama_produk }}</td>
-                                    <td>Rp{{ number_format($produk->harga_jual, 2) }}</td>
-                                    <td>Rp{{ number_format($produk->biaya_produk, 2) }}</td>
-                                    <td>{{ (int)$produk->on_hand ?? 0 }}</td>
+                                    <td>{{ $rfq->kode_rfq }}</td>
+                                    <td>{{ $rfq->tb_vendor->nama }}</td>
+                                    <td>{{ \Carbon\Carbon::parse($rfq->tanggal_order)->format('d/m/Y') }}</td>
                                     <td>
-                                        @if (!$produk->foto)
-                                            <img src="{{ asset('images/img-not-found.png') }}" width="100px">
-                                        @else
-                                            <img src="{{ url('storage/foto-produk/' . $produk->foto) }}" width="100px">
+                                        @if (strtolower($rfq->status) == 'draft')
+                                            <span class="badge bg-secondary">Draft</span>
+                                        @elseif (strtolower($rfq->status) == 'rfq_sent')
+                                            <span class="badge bg-primary">RFQ Sent</span>
+                                        @elseif (strtolower($rfq->status) == 'rfq_approved')
+                                            <span class="badge bg-info">RFQ Approved</span>
+                                        @elseif (strtolower($rfq->status) == 'purchase_order')
+                                            <span class="badge bg-success">Purchase Order</span>
                                         @endif
                                     </td>
                                     <td>
-                                        <a href="{{ route('produk.edit', $produk->id) }}"
+                                        <a href="{{ route('rfq.edit', $rfq->id) }}"
                                             class="text-secondary font-weight-bold text-xs" data-toggle="tooltip"
-                                            data-original-title="Edit Produk">
+                                            data-original-title="Edit RFQ">
                                             <button class="btn btn-primary" type="button">
                                                 <i class="bi bi-pencil"></i>
                                             </button>
                                         </a>
-                                        <a href="{{ route('produk.show', $produk->id) }}"
+                                        <a href="{{ route('rfq.show', $rfq->id) }}"
                                             class="text-secondary font-weight-bold text-xs" data-toggle="tooltip"
-                                            data-original-title="Detail Produk">
+                                            data-original-title="RFQ Detail">
                                             <button class="btn btn-primary" type="button">
                                                 <i class="bi bi-file-earmark-text"></i>
                                             </button>
                                         </a>
-                                        <a href="{{ route('produk.destroy', $produk->id) }}"
+                                        <a href="{{ route('rfq.destroy', $rfq->id) }}"
                                             class="btn btn-danger font-weight-bold text-xs" data-confirm-delete="true">
                                             <i class="bi bi-trash"></i>
                                         </a>

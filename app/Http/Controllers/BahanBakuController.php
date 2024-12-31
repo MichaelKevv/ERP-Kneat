@@ -20,7 +20,10 @@ class BahanBakuController extends Controller
      */
     public function index()
     {
-        $data = TbBahanBaku::all();
+        $data = TbBahanBaku::select('tb_bahanbaku.*', DB::raw('SUM(tb_inventory.on_hand) as on_hand'))
+            ->leftJoin('tb_inventory', 'tb_inventory.id_bahanbaku', '=', 'tb_bahanbaku.id')
+            ->groupBy('tb_bahanbaku.id', 'tb_bahanbaku.nama', 'tb_bahanbaku.harga_beli', 'tb_bahanbaku.internal_reference', 'tb_bahanbaku.barcode', 'tb_bahanbaku.satuan', 'tb_bahanbaku.note', 'tb_bahanbaku.foto', 'tb_bahanbaku.created_at', 'tb_bahanbaku.updated_at')
+            ->get();
         $title = 'Hapus Bahan Baku';
         $text = "Apakah anda yakin untuk hapus?";
         confirmDelete($title, $text);

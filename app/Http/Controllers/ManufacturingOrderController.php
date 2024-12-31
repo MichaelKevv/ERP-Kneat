@@ -17,24 +17,19 @@ class ManufacturingOrderController extends Controller
 {
     public function checkAvailability(Request $request)
     {
-        // Get the manufacturing order ID and materials from the request
         $manufacturingOrderId = $request->input('manufacturingOrderId');
         $materials = $request->input('materials');
 
-        // Prepare an array to store the availability data
         $availability = [];
 
         DB::beginTransaction();
         try {
             foreach ($materials as $material) {
-                // Get the inventory for the given material ID
                 $inventory = TbInventory::where('id_bahanbaku', $material['materialId'])->first();
                 $toConsume = $material['toConsume'];
 
-                // Calculate reserved quantity based on available stock
                 $availableStock = $inventory ? $inventory->on_hand : 0;
 
-                // Ensure that reserved quantity is calculated correctly
                 $reservedQuantity = min($toConsume, $availableStock);
                 $availability[$material['materialId']] = $reservedQuantity;
 
@@ -52,24 +47,82 @@ class ManufacturingOrderController extends Controller
             }
             DB::commit();
         } catch (\Exception $e) {
-            DB::rollback(); // Rollback transaction on error
+            DB::rollback();
             return response()->json(['error' => $e->getMessage()], 500);
         }
 
         return response()->json($availability);
     }
+    public function startProduction(Request $request)
+    {
+        $manufacturingOrderId = $request->input('manufacturingOrderId');
+        $materials = $request->input('materials');
+
+        $availability = [];
+
+        DB::beginTransaction();
+        try {
+            foreach ($materials as $material) {
+                $reservedQuantity  = $material['reserved'];
+
+                TbInventory::where('id_bahanbaku', $material['materialId'])->decrement('on_hand', $reservedQuantity);
+
+                $orderDetail = TbManufacturingOrderDetail::updateOrCreate(
+                    [
+                        'id_manufacturing_order' => $manufacturingOrderId,
+                        'id_bahanbaku' => $material['materialId']
+                    ],
+                    [
+                        'reserved' => $reservedQuantity,
+                        'consumed' => $reservedQuantity
+                    ]
+                );
+
+                $availability[$material['materialId']] = [
+                    'reserved' => $orderDetail->reserved,
+                    'consumed' => $orderDetail->consumed,
+                ];
+                Log::info('Reserved quantity updated', ['reservedQuantity' => $reservedQuantity, 'materialId' => $material['materialId']]);
+            }
+            DB::commit();
+            return response()->json([
+                'success' => true,
+                'availability' => $availability,
+                'message' => 'Produksi dimulai dengan sukses!',
+            ]);
+        } catch (\Exception $e) {
+            DB::rollback();
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function doneProduction(Request $request)
+    {
+        DB::beginTransaction();
+        try {
+            TbInventory::create([
+                'id_produk' => $request->input('idProduk'),
+                'on_hand' => $request->input('quantity'),
+            ]);
+            DB::commit();
+            return response()->json([
+                'success' => true,
+                'message' => 'Produk sudah selesai diproduksi!',
+            ]);
+        } catch (\Exception $e) {
+            DB::rollback();
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
 
     public function updateStatus(Request $request, $id)
     {
-        // Validate the request data
         $request->validate([
-            'status' => 'required|in:confirmed,in_progress',
+            'status' => 'required|in:confirmed,in_progress,done',
         ]);
 
-        // Find the manufacturing order by ID
         $manufacturingOrder = TbManufacturingOrder::findOrFail($id);
 
-        // Update the status based on the request
         $manufacturingOrder->status = $request->status;
         $manufacturingOrder->save();
 
@@ -90,20 +143,10 @@ class ManufacturingOrderController extends Controller
 
     public function show(TbManufacturingOrder $manufacturingOrder)
     {
-        // Fetching the BOM details related to the manufacturing order
         $manufacturingOrder->load('tb_bom.tb_bom_details.tb_bahanbaku');
-
         $bomDetails = $manufacturingOrder->tb_bom->tb_bom_details;
-
-        // Retrieve reserved quantities for each material in the manufacturing order
         $reservedData = $manufacturingOrder->tb_manufacturing_order_details->keyBy('id_bahanbaku');
-
-
-        // Fetch inventory and key it by 'id_bahanbaku' (assuming 'id_bahanbaku' is the foreign key for the material)
-        // Assuming 'id_bahanbaku' links to the material in the BOM details
         $inventory = TbInventory::all()->keyBy('id_bahanbaku');
-
-        // Passing bomDetails, inventory, and manufacturing order data to the view
         return view('manufacturing_orders.detail', compact('bomDetails', 'inventory', 'manufacturingOrder', 'reservedData'));
     }
 
@@ -129,7 +172,6 @@ class ManufacturingOrderController extends Controller
         $newNoUrutan = str_pad($lastNoUrutan + 1, 3, '0', STR_PAD_LEFT); // Pad with leading zeros
         $kodeMo = 'MO/' . $newNoUrutan;
 
-        // Add the 'kode_mo' to the request data
         $request->merge(['kode_mo' => $kodeMo]);
 
         TbManufacturingOrder::create($request->all());
@@ -139,7 +181,7 @@ class ManufacturingOrderController extends Controller
 
     public function edit(TbManufacturingOrder $manufacturingOrder)
     {
-        $products = TbProduk::with('tb_boms')->get(); // Include BoM items for each product
+        $products = TbProduk::with('tb_boms')->get();
         return view('manufacturing_orders.edit', compact('manufacturingOrder', 'products'));
     }
 

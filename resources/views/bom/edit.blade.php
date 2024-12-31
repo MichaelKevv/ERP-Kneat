@@ -10,7 +10,7 @@
                     <nav aria-label="breadcrumb" class="breadcrumb-header float-start float-lg-end">
                         <ol class="breadcrumb">
                             <li class="breadcrumb-item"><a href="{{ url('dashboard') }}">Dashboard</a></li>
-                            <li class="breadcrumb-item"><a href="{{ url('bahan_baku') }}">Data Bill of Material</a></li>
+                            <li class="breadcrumb-item"><a href="{{ url('bom') }}">Data Bill of Material</a></li>
                             <li class="breadcrumb-item active" aria-current="page">Edit Data Bill of Material</li>
                         </ol>
                     </nav>

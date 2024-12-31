@@ -20,8 +20,6 @@
             <div class="card">
                 <div class="card-header">
                     <a href="{{ url('vendors/create') }}"><button class="btn btn-success">Tambah Data</button></a>
-                    <a href="" target="_blank"><button class="btn btn-success float-end">Export
-                            PDF</button></a>
                 </div>
                 <div class="card-body">
                     <table class="table table-striped" id="table1">

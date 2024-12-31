@@ -20,7 +20,10 @@ class ProdukController extends Controller
      */
     public function index()
     {
-        $data = TbProduk::all();
+        $data = TbProduk::select('tb_produk.*', DB::raw('SUM(tb_inventory.on_hand) as on_hand'))
+            ->leftJoin('tb_inventory', 'tb_inventory.id_produk', '=', 'tb_produk.id')
+            ->groupBy('tb_produk.id', 'tb_produk.nama_produk', 'tb_produk.id_kategori', 'tb_produk.harga_jual', 'tb_produk.biaya_produk', 'tb_produk.exp', 'tb_produk.internal_reference', 'tb_produk.barcode', 'tb_produk.satuan', 'tb_produk.pajak', 'tb_produk.note', 'tb_produk.foto', 'tb_produk.created_at', 'tb_produk.updated_at')
+            ->get();
         $title = 'Hapus Produk';
         $text = "Apakah anda yakin untuk hapus?";
         confirmDelete($title, $text);

@@ -56,7 +56,7 @@
                         $bom->tb_bom_details->sum(function ($detail) {
                             return ($detail->tb_bahanbaku->satuan == 'gram'
                                 ? $detail->kuantitas_bahan / 1000
-                                : ($detail->tb_bahanbaku->satuan == 'milliliter'
+                                : ($detail->tb_bahanbaku->satuan == 'mililiter'
                                     ? $detail->kuantitas_bahan / 1000
                                     : $detail->kuantitas_bahan)) * $detail->tb_bahanbaku->harga_beli;
                         }),
@@ -73,7 +73,7 @@
                     $materialCost =
                         ($detail->tb_bahanbaku->satuan == 'gram'
                             ? $detail->kuantitas_bahan / 1000
-                            : ($detail->tb_bahanbaku->satuan == 'milliliter'
+                            : ($detail->tb_bahanbaku->satuan == 'mililiter'
                                 ? $detail->kuantitas_bahan / 1000
                                 : $detail->kuantitas_bahan)) * $detail->tb_bahanbaku->harga_beli;
                     $totalCost += $materialCost;

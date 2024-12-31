@@ -20,17 +20,18 @@
             <div class="card">
                 <div class="card-header">
                     <a href="{{ url('bahan_baku/create') }}"><button class="btn btn-success">Tambah Data</button></a>
-                    <a href="" target="_blank"><button class="btn btn-success float-end">Export
-                            PDF</button></a>
+                    {{-- <a href="" target="_blank"><button class="btn btn-success float-end">Export
+                            PDF</button></a> --}}
                 </div>
                 <div class="card-body">
                     <table class="table table-striped" id="table1">
                         <thead>
                             <tr>
                                 <th>Barcode</th>
-                                <th>Internal Ref</th>
+                                <th>Internal Reference</th>
                                 <th>Nama Bahan Baku</th>
                                 <th>Harga Beli</th>
+                                <th>On Hand</th>
                                 <th>Foto</th>
                                 <th>Aksi</th>
                             </tr>
@@ -42,6 +43,7 @@
                                     <td>{{ $bahan_baku->internal_reference }}</td>
                                     <td>{{ $bahan_baku->nama }}</td>
                                     <td>Rp{{ number_format($bahan_baku->harga_beli, 2) }}</td>
+                                    <td>{{ (int)$bahan_baku->on_hand ?? 0 }}</td>
                                     <td>
                                         @if (!$bahan_baku->foto)
                                             <img src="{{ asset('images/img-not-found.png') }}"

@@ -46,7 +46,7 @@
                     <hr>
 
                     <h5>Bahan Baku</h5>
-                    <table class="table table-striped">
+                    <table class="table table-striped" id="table1">
                         <thead>
                             <tr>
                                 <th>Nama Bahan Baku</th>

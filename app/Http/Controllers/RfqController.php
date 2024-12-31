@@ -4,18 +4,37 @@ namespace App\Http\Controllers;
 
 use App\Models\TbKategori;
 use App\Models\TbBahanBaku;
-use App\Models\TbBom;
+use App\Models\TbRfq;
 use App\Models\TbBomDetail;
 use App\Models\TbProduk;
+use App\Models\TbRfqDetail;
+use App\Models\TbVendor;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use RealRashid\SweetAlert\Facades\Alert;
 
-class BomController extends Controller
+class RfqController extends Controller
 {
+    public function updateStatus(Request $request, $id)
+    {
+        $request->validate([
+            'status' => 'required|in:draft,rfq_sent,rfq_approved,purchase_order',
+        ]);
+
+        $rfq = TbRfq::findOrFail($id);
+
+        $rfq->status = $request->status;
+        $rfq->save();
+
+        return response()->json([
+            'message' => 'Status RFQ updated successfully!',
+            'status' => $rfq->status
+        ]);
+    }
     /**
      * Display a listing of the resource.
      *
@@ -23,11 +42,11 @@ class BomController extends Controller
      */
     public function index()
     {
-        $data = TbBom::all();
-        $title = 'Hapus Bill Of Materials';
+        $data = TbRfq::all();
+        $title = 'Hapus RFQ';
         $text = "Apakah anda yakin untuk hapus?";
         confirmDelete($title, $text);
-        return view('bom.index', compact('data'));
+        return view('rfq.index', compact('data'));
     }
 
     /**
@@ -37,9 +56,9 @@ class BomController extends Controller
      */
     public function create()
     {
-        $data['produk'] = TbProduk::all();
+        $data['vendor'] = TbVendor::all();
         $data['bahan_baku'] = TbBahanBaku::all();
-        return view('bom.create', $data);
+        return view('rfq.create', $data);
     }
 
     /**
@@ -50,11 +69,8 @@ class BomController extends Controller
      */
     public function store(Request $request)
     {
-        // Validasi input utama BOM
         $request->validate([
-            'id_produk' => 'required|exists:tb_produk,id',
-            'reference' => 'required|string|max:255',
-            'kuantitas' => 'required|integer|min:1'
+            'id_vendor' => 'required|exists:tb_produk,id',
         ]);
 
         // Validasi bahan baku
@@ -66,25 +82,31 @@ class BomController extends Controller
         DB::beginTransaction();
 
         try {
-            $bom = TbBom::create([
-                'id_produk' => $request->id_produk,
-                'reference' => $request->reference,
-                'kuantitas' => $request->kuantitas,
+            $lastOrder = TbRfq::latest()->first();
+            $lastNoUrutan = $lastOrder ? (int) substr($lastOrder->kode_rfq, 4) : 0;
+            $newNoUrutan = str_pad($lastNoUrutan + 1, 3, '0', STR_PAD_LEFT);
+            $kodeRfq = 'RFQ/' . $newNoUrutan;
+
+            $rfq = TbRfq::create([
+                'id_vendor' => $request->id_vendor,
+                'kode_rfq' => $kodeRfq,
+                'tanggal_order' => Carbon::now(),
             ]);
 
-            if ($request->has('id_bahanbaku') && $request->has('kuantitas_bahan')) {
+            if ($request->has('id_bahanbaku') && $request->has('kuantitas_bahan') && $request->has('total_harga')) {
                 foreach ($request->id_bahanbaku as $index => $bahanBakuId) {
-                    TbBomDetail::create([
-                        'id_bom' => $bom->id,
+                    TbRfqDetail::create([
+                        'id_rfq' => $rfq->id,
                         'id_bahanbaku' => $bahanBakuId,
-                        'kuantitas_bahan' => $request->kuantitas_bahan[$index]
+                        'kuantitas' => $request->kuantitas_bahan[$index],
+                        'total' => $request->total_harga[$index]
                     ]);
                 }
             }
 
             DB::commit();
-            Alert::success("Success", "Bill of Material berhasil ditambahkan");
-            return redirect()->route('bom.index');
+            Alert::success("Success", "RFQ berhasil dibuat");
+            return redirect()->route('rfq.index');
         } catch (\Exception $e) {
             DB::rollback();
             Alert::error("Error", "Terjadi kesalahan saat menyimpan data." . $e->getMessage());
@@ -98,16 +120,10 @@ class BomController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function show(TbBom $bom)
+    public function show(TbRfq $rfq)
     {
-        $bom->load('tb_bom_details.tb_bahanbaku');
-        return view('bom.detail', compact('bom'));
-    }
-
-    public function bom_structure(TbBom $bom)
-    {
-        $bom->load('tb_bom_details.tb_bahanbaku');
-        return view('bom.bom_structure', compact('bom'));
+        $rfq->load('tb_rfq_details.tb_bahanbaku');
+        return view('rfq.detail', compact('rfq'));
     }
 
     /**
@@ -116,16 +132,14 @@ class BomController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function edit(TbBom $bom)
+    public function edit(TbRfq $rfq)
     {
-        // Muat detail BOM dengan data bahan baku terkait
-        $bom->load('tb_bom_details.tb_bahanbaku');
+        $rfq->load('tb_rfq_details.tb_bahanbaku');
 
-        // Ambil semua produk dan bahan baku untuk dropdown pilihan
-        $produk = TbProduk::all();
+        $vendor = TbVendor::all();
         $bahanBaku = TbBahanBaku::all();
 
-        return view('bom.edit', compact('bom', 'produk', 'bahanBaku'));
+        return view('rfq.edit', compact('rfq', 'vendor', 'bahanBaku'));
     }
 
 
@@ -136,43 +150,42 @@ class BomController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, TbBom $bom)
+    public function update(Request $request, TbRfq $rfq)
     {
         // Update data BOM utama
-        $bom->update([
-            'id_produk' => $request->id_produk,
-            'reference' => $request->reference,
+        $rfq->update([
+            'id_vendor' => $request->id_vendor,
         ]);
 
         // Update existing bahan baku details
         if ($request->has('bahan_baku')) {
             foreach ($request->bahan_baku as $detailId => $data) {
-                $detail = TbBomDetail::find($detailId);
+                $detail = TbRfqDetail::find($detailId);
                 if ($detail) {
                     $detail->update([
                         'id_bahanbaku' => $data['id_bahanbaku'],
-                        'kuantitas_bahan' => $data['kuantitas_bahan'], // Gunakan nilai default jika tidak ditemukan
+                        'kuantitas' => $data['kuantitas_bahan'],
+                        'total' => $data['total_harga'],
                     ]);
                 }
             }
         }
 
-        // Tambahkan bahan baku baru jika ada
         if ($request->has('new_bahan_baku')) {
-            // Periksa apakah new_bahan_baku memiliki semua data yang diperlukan
             foreach ($request->new_bahan_baku as $newData) {
-                if (isset($newData['id_bahanbaku']) && isset($newData['kuantitas_bahan'])) {
-                    $bom->tb_bom_details()->create([
+                if (isset($newData['id_bahanbaku']) && isset($newData['kuantitas_bahan']) && isset($newData['total_harga'])) {
+                    $rfq->tb_rfq_details()->create([
                         'id_bahanbaku' => $newData['id_bahanbaku'],
-                        'kuantitas_bahan' => $newData['kuantitas_bahan'],
+                        'kuantitas' => $newData['kuantitas_bahan'],
+                        'total' => $newData['total_harga'],
                     ]);
                 }
             }
         }
 
-        Alert::success("Success", "Bill of Material berhasil diperbarui");
+        Alert::success("Success", "RFQ berhasil diperbarui");
 
-        return redirect()->route('bom.index');
+        return redirect()->route('rfq.index');
     }
 
 
@@ -182,26 +195,27 @@ class BomController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function destroy(TbBom $bom)
+    public function destroy(TbRfq $rfq)
     {
         DB::beginTransaction();
 
         try {
-            $bom->tb_bom_details()->delete();
-            $bom->delete();
+            $rfq->tb_rfq_details()->delete();
+            $rfq->delete();
             DB::commit();
-            Alert::success("Success", "BOM berhasil dihapus");
-            return redirect("bom");
+            Alert::success("Success", "RFQ berhasil dihapus");
+            return redirect("rfq");
         } catch (\Exception $e) {
             DB::rollBack();
             return redirect()->back()->with('error', 'Terjadi kesalahan saat menghapus data.');
         }
     }
 
-    public function printPdf(TbBom $bom)
+
+    public function printPdf(TbRfq $rfq)
     {
-        $bom->load('tb_bom_details', 'tb_bom_details.tb_bahanbaku');
-        $pdf = Pdf::loadView('bom.pdf', compact('bom'));
-        return $pdf->download('BOM_' . $bom->reference . '.pdf');
+        $rfq->load('tb_rfq_details', 'tb_rfq_details.tb_bahanbaku');
+        $pdf = Pdf::loadView('rfq.pdf', compact('rfq'));
+        return $pdf->download('RFQ_' . $rfq->kode_rfq . '.pdf');
     }
 }

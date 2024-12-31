@@ -106,7 +106,6 @@
 
             bomSelect.innerHTML = '<option value="" disabled selected>Pilih BoM</option>';
 
-            // Populate BoM dropdown
             bomsData.forEach(bom => {
                 const option = document.createElement('option');
                 option.value = bom.id;
